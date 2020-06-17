@@ -4,8 +4,7 @@ SysIntegrity allows users to add files on their system to a registry which would
 
 ## Getting Started
 
-To setup and add files to the whitelist, run ``` ./main.sh ``` 
-For better security, create a cronjob by typing ``` sudo crontab -e ``` and input the following line ``` @reboot /file/path/SysIntegrity/cron.sh > /home/USER/.sysintegrity.log ```. This will check for hash changes on startup and write to a log file in the user's home directory
+To setup, add files to the whitelist, and create a cronjob, run ``` ./main.sh ``` 
 
 If you make a change to a file on the whitelist you're going to have to add the file again and remove the old entry from the whitelist. This tool is meant for critical system files that require little to no reoccuring configuration.
 
@@ -14,7 +13,6 @@ If you make a change to a file on the whitelist you're going to have to add the 
 * Ubuntu - Debian Linux OS
 * Kali Linux - Pentesting OS developed by Offensive Security
 * GitHub - This Website!
-
 
 ## Authors
 
