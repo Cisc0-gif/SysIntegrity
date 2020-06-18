@@ -31,7 +31,7 @@ else
 fi
 
 printf "${BLUE}[*] Checking if gtkhash is installed...${NC}\n"
-gtkcheck=$(sudo dpkg -s gtkhash | grep not)
+gtkcheck=$(dpkg -s gtkhash | grep not)
 if [ -n "$gtkcheck" ]; then
   printf "${RED}[!] gtkhash not installed, installing now...${NC}\n"
   sudo apt-get install gtkhash
