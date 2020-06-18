@@ -43,7 +43,8 @@ read -p "[*] Do you want to make a cronjob for verifying files on startup?[y/N]:
 printf ${NC}
 if [ $cronadd == 'y' ] || [ $cronadd == 'Y' ]; then
   printf "${BLUE}[*] Adding cronjob...${NC}\n"
-  sudo crontab -l | { cat; echo "@reboot $currentdir/cron.sh >> /home/$user/.sysintegrity.log"; } | sudo crontab -
+  echo $user | sudo tee -a /etc/cron.allow
+  crontab -l | { cat; echo "@reboot $currentdir/cron.sh >> /home/$user/.sysintegrity.log"; } | crontab -
   printf "${GREEN}[+] Cronjob added, check /home/$user/.sysintegrity.log for output...${NC}\n"
 else
   printf "${BLUE}[*] Cronjob skipped...${NC}\n"
