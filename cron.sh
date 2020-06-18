@@ -47,7 +47,7 @@ do
   match=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehash.list)
   hash=$(echo $match | awk '{ print $1 }')
   filepath=$(echo $match | awk '{ print $2 }')
-  md5hash=$(sudo md5sum $filepath | awk '{ print $1 }')
+  md5hash=$(md5sum $filepath | awk '{ print $1 }')
   if [ $md5hash == $hash ]; then
    printf "${BLUE}[+] $filepath: ${GREEN}OK--$timestamp{NC}\n"
   else
