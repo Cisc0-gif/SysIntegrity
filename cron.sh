@@ -49,7 +49,7 @@ do
   filepath=$(echo $match | awk '{ print $2 }')
   md5hash=$(md5sum $filepath | awk '{ print $1 }')
   if [ $md5hash == $hash ]; then
-   printf "${BLUE}[+] $filepath: ${GREEN}OK--$timestamp{NC}\n"
+   printf "${BLUE}[+] $filepath: ${GREEN}OK--$timestamp${NC}\n"
   else
     printf "${RED}[!] $filepath: ${RED}WARNING--$timestamp${NC}\n"
   fi
