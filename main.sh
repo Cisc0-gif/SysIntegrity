@@ -1,4 +1,4 @@
- #! /bin/bash
+#! /bin/bash
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -19,6 +19,26 @@ else
   touch /home/$user/.whitehash.list
   sudo chmod 700 /home/$user/.whitehash.list
   sudo chown $user /home/$user/.whitehash.list
+fi
+
+printf "${BLUE}[*] Checking if whitehost.list exists...${NC}\n"
+if [ -f "/home/$user/.whitehost.list" ]; then
+  printf "${GREEN}[+] Host whitelist exists...${NC}\n"
+else
+  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+  touch /home/$user/.whitehost.list
+  sudo chmod 700 /home/$user/.whitehost.list
+  sudo chown $user /home/$user/.whitehost.list
+fi
+
+printf "${BLUE}[*] Checking if .authips.list exists...${NC}\n"
+if [ -f "/home/$user/.authips.list" ]; then
+  printf "${GREEN}[+] Auth Log list exists...${NC}\n"
+else
+  printf "${RED}[!] Unable to locate auth log list, generating...${NC}\n"
+  sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
+  sudo chmod 700 /home/$user/.authips.list
+  sudo chown $user /home/$user/.authips.list
 fi
 
 printf "${BLUE}[*] Checking if sysintegrity.log exists...${NC}\n"
@@ -55,8 +75,7 @@ printf ${NC}
 if [ $newfiles == 'y' ] || [ $newfiles == 'Y' ]; then
   printf "${BLUE}[*] Ex. /home/$user/Desktop/file.txt${NC}\n"
   printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
-  while [ 1 == 1 ]
-  do
+  while [ 1 == 1 ]; do
     read -p "[*] Filepath: " newfilepath
     if [ $newfilepath == 'done' ]; then
       break
@@ -80,3 +99,50 @@ do
     printf "${RED}[!] $filepath: ${RED}WARNING${NC}\n"
   fi
 done
+printf "${BLUE}"
+read -p "[*] Do you want to add any new IPs to whitelist?[y/N]: " newips
+printf "${NC}"
+if [ $newips == 'y' ] || [ $newips == 'Y' ]; then
+  printf "${BLUE}[*] Ex. 192.168.1.0${NC}\n"
+  printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
+  while [ 1 == 1 ]; do
+    read -p "[*]IP: " newip
+    if [ $newip == 'done' ]; then
+      break
+    fi
+    echo "$newip" >> /home/$user/.whitehost.list
+  done
+else
+  printf "${BLUE}[*] Checking for nonapproved IPs in auth.log\n"
+fi
+printf "${BLUE}[*] Refreshing .authips.list...${NC}\n"
+sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
+ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
+authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
+printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
+printf "${RED}[!] Found failed-login attempts from the following IPs: ${NC}\n"
+sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }'
+printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
+iparray=()
+autharray=()
+for i in $(seq 1 $ipcount); do
+  ipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehost.list)
+  iparray+=("$ipmatch")
+done
+for i in $(seq 1 $authcount); do
+  authipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.authips.list)
+  autharray+=("$authipmatch")
+done
+unauthips=()
+for i in "${autharray[@]}"; do
+    skip=
+    for j in "${iparray[@]}"; do
+        [[ $i == $j ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] || unauthips+=("$i")
+done
+for i in "${unauthips[@]}"; do
+  printf "  $i\n"
+done
+#echo ${unauthips[@]}
+#WORK_HERE
