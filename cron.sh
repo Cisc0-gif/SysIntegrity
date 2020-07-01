@@ -36,7 +36,7 @@ if [ -f "/home/$user/.authips.list" ]; then
   printf "${GREEN}[+] Auth Log list exists...${NC}\n"
 else
   printf "${RED}[!] Unable to locate auth log list, generating...${NC}\n"
-  sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user>
+  sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
   sudo chmod 700 /home/$user/.authips.list
   sudo chown $user /home/$user/.authips.list
 fi
@@ -75,12 +75,12 @@ for i in $(seq 1 $count); do
 done
 printf "${BLUE}[*] Checking for nonapproved IPs in auth.log...\n"
 printf "${BLUE}[*] Refreshing .authips.list...${NC}\n"
-sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.>
+sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
 ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
 authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
 printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
 printf "${RED}[!] Found failed-login attempts from the following IPs: ${NC}\n"
-sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort>
+sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }'
 printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
 iparray=()
 autharray=()
