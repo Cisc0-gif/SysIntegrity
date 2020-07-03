@@ -50,6 +50,24 @@ else
   sudo chmod 700 /home/$user/.sysintegrity.log
 fi
 
+printf "${BLUE}[*] Checking if ufw is installed...${NC}\n"
+ufwcheck=$(sudo dpkg -s ufw | grep not)
+if [ -n "$ufwcheck" ]; then
+  printf "${RED}[!] ufw not installed, installing now...${NC}\n"
+  sudo apt-get install ufw
+else
+  printf "${GREEN}[+] ufw installed...${NC}\n"
+fi
+
+printf "${BLUE}[*] Checking if rkhunter is installed...${NC}\n"
+rkhuntercheck=$(sudo dpkg -s rkhunter | grep dpkg-query)
+if [ -n "$rkhuntercheck" ]; then
+  printf "${RED}[!] rkhunter not installed, installing now...${NC}\n"
+  sudo apt-get install rkhunter
+else
+  printf "${GREEN}[+] rkhunter installed...${NC}\n"
+fi
+
 printf "${BLUE}[*] Checking if gtkhash is installed...${NC}\n"
 gtkcheck=$(sudo dpkg -s gtkhash | grep not)
 if [ -n "$gtkcheck" ]; then
@@ -58,7 +76,8 @@ if [ -n "$gtkcheck" ]; then
 else
   printf "${GREEN}[+] gtkhash installed...${NC}\n"
 fi
-printf ${BLUE}
+
+printf "${BLUE}\n"
 read -p "[*] Do you want to make a cronjob for verifying files on startup?[y/N]: " cronadd
 printf ${NC}
 if [ $cronadd == 'y' ] || [ $cronadd == 'Y' ]; then
@@ -69,7 +88,7 @@ if [ $cronadd == 'y' ] || [ $cronadd == 'Y' ]; then
 else
   printf "${BLUE}[*] Cronjob skipped...${NC}\n"
 fi
-printf ${BLUE}
+printf "${BLUE}\n"
 read -p "[*] Do you want to add any new files to whitelist?[y/N]: " newfiles
 printf ${NC}
 if [ $newfiles == 'y' ] || [ $newfiles == 'Y' ]; then
@@ -99,7 +118,7 @@ do
     printf "${RED}[!] $filepath: ${RED}WARNING${NC}\n"
   fi
 done
-printf "${BLUE}"
+printf "${BLUE}\n"
 read -p "[*] Do you want to add any new IPs to whitelist?[y/N]: " newips
 printf "${NC}"
 if [ $newips == 'y' ] || [ $newips == 'Y' ]; then
@@ -113,16 +132,20 @@ if [ $newips == 'y' ] || [ $newips == 'Y' ]; then
     echo "$newip" >> /home/$user/.whitehost.list
   done
 else
-  printf "${BLUE}[*] Checking for nonapproved IPs in auth.log\n"
+  printf "\n${BLUE}[*] Checking for nonapproved IPs in auth.log\n"
 fi
 printf "${BLUE}[*] Refreshing .authips.list...${NC}\n"
 sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
 ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
 authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
 printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
-printf "${RED}[!] Found failed-login attempts from the following IPs: ${NC}\n"
-sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }'
-printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
+failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
+if [ -z "$failedlogin" ]; then
+  printf "${GREEN}[+] No failed-login attempts detected!${NC}\n"
+else
+  printf "${RED}[!] Found failed-login attempts from the following IPs: ${NC}\n"
+  printf "$failedlogin"
+fi
 iparray=()
 autharray=()
 for i in $(seq 1 $ipcount); do
@@ -135,14 +158,19 @@ for i in $(seq 1 $authcount); do
 done
 unauthips=()
 for i in "${autharray[@]}"; do
-    skip=
-    for j in "${iparray[@]}"; do
-        [[ $i == $j ]] && { skip=1; break; }
-    done
-    [[ -n $skip ]] || unauthips+=("$i")
+  skip=
+  for j in "${iparray[@]}"; do
+    [[ $i == $j ]] && { skip=1; break; }
+  done
+  [[ -n $skip ]] || unauthips+=("$i")
 done
-for i in "${unauthips[@]}"; do
-  printf "  $i\n"
-done
-#echo ${unauthips[@]}
+unapproved=$(echo ${unauthips[@]})
+if [ -z "$unapproved" ]; then
+  printf "${GREEN}[+] No unapproved IPs in auth.log${NC}\n"
+else
+  printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
+  for i in "${unauthips[@]}"; do
+    printf "${RED}  $i\n"
+  done
+fi
 #WORK_HERE

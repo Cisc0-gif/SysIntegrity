@@ -11,11 +11,11 @@ wait_func() {
 read -p "PRESS ENTER TO CONTINUE" wait
 }
 
-printf "${BLUE}[*] Checking if whitehash.list exists...--$timestamp${NC}\n"
+printf "${BLUE}[*] Checking if whitehash.list exists...${NC}\n"
 if [ -f "/home/$user/.whitehash.list" ]; then
-  printf "${GREEN}[+] Hash whitelist exists...--$timestamp${NC}\n"
+  printf "${GREEN}[+] Hash whitelist exists...${NC}\n"
 else
-  printf "${RED}[!] Unable to locate whitelist, generating...--$timestamp${NC}\n"
+  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
   touch /home/$user/.whitehash.list
   sudo chmod 700 /home/$user/.whitehash.list
   sudo chown $user /home/$user/.whitehash.list
@@ -50,6 +50,24 @@ else
   sudo chmod 700 /home/$user/.sysintegrity.log
 fi
 
+printf "${BLUE}[*] Checking if ufw is installed...${NC}\n"
+ufwcheck=$(sudo dpkg -s ufw | grep not)
+if [ -n "$ufwcheck" ]; then
+  printf "${RED}[!] ufw not installed, installing now...${NC}\n"
+  sudo apt-get install ufw
+else
+  printf "${GREEN}[+] ufw installed...${NC}\n"
+fi
+
+printf "${BLUE}[*] Checking if rkhunter is installed...${NC}\n"
+rkhuntercheck=$(sudo dpkg -s rkhunter | grep dpkg-query)
+if [ -n "$rkhuntercheck" ]; then
+  printf "${RED}[!] rkhunter not installed, installing now...${NC}\n"
+  sudo apt-get install rkhunter
+else
+  printf "${GREEN}[+] rkhunter installed...${NC}\n"
+fi
+
 printf "${BLUE}[*] Checking if gtkhash is installed...${NC}\n"
 gtkcheck=$(dpkg -s gtkhash | grep not)
 if [ -n "$gtkcheck" ]; then
@@ -79,9 +97,13 @@ sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | 
 ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
 authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
 printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
-printf "${RED}[!] Found failed-login attempts from the following IPs: ${NC}\n"
-sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }'
-printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
+failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
+if [ -z "$failedlogin" ]; then
+  printf "${GREEN}[+] No failed-login attempts detected!--$timestamp${NC}\n"
+else
+  printf "${RED}[!] Found failed-login attempts from the following IPs: --$timestamp${NC}\n"
+  printf "$failedlogin"
+fi
 iparray=()
 autharray=()
 for i in $(seq 1 $ipcount); do
@@ -100,7 +122,12 @@ for i in "${autharray[@]}"; do
     done
     [[ -n $skip ]] || unauthips+=("$i")
 done
-for i in "${unauthips[@]}"; do
-  printf "  $i\n"
-done
-
+unapproved=$(echo ${unauthips[@]})
+if [ -z "$unapproved" ]; then
+  printf "${GREEN}[+] No unapproved IPs in auth.log--$timestamp${NC}\n"
+else
+  printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
+  for i in "${unauthips[@]}"; do
+    printf "${RED}  $i  --$timestamp\n"
+  done
+fi
