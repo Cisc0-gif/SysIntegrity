@@ -139,6 +139,20 @@ sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | 
 ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
 authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
 printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
+warningmessages=$(sudo grep "Warning:" /var/log/rkhunter.log.1 | sort)
+if [ -z "$warningmessages" ]; then
+  printf "${GREEN}[+] No warning messages detected!${NC}\n"
+else
+  printf "${RED}[!] Found warning messages with the following issues${NC}\n"
+  printf "$warningmessages\n"
+fi
+ufwblocked=$(sudo grep "[UFW BLOCK]" /var/log/ufw.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
+if [ -z "$ufwblocked" ]; then
+  printf "${GREEN}[+] No block requests detected!${NC}\n"
+else
+  printf "${RED}[!] Found blocked requests from the following IPs: ${NC}\n"
+  printf "$ufwblocked\n"
+fi
 failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 if [ -z "$failedlogin" ]; then
   printf "${GREEN}[+] No failed-login attempts detected!${NC}\n"
@@ -170,7 +184,7 @@ if [ -z "$unapproved" ]; then
 else
   printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
   for i in "${unauthips[@]}"; do
-    printf "${RED}  $i\n"
+    printf "$i\n"
   done
 fi
 #WORK_HERE
