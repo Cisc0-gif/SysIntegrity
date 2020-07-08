@@ -113,9 +113,9 @@ do
   filepath=$(echo $match | awk '{ print $2 }')
   md5hash=$(sudo md5sum $filepath | awk '{ print $1 }')
   if [ $md5hash == $hash ]; then
-   printf "${BLUE}[+] $filepath: ${GREEN}OK${NC}\n"
+    printf "${BLUE}[+] $filepath: ${GREEN}OK${NC}\n"
   else
-    printf "${RED}[!] $filepath: ${RED}WARNING${NC}\n"
+    printf "${RED}[!] $filepath: WARNING${NC}\n"
   fi
 done
 printf "${BLUE}\n"
@@ -141,23 +141,23 @@ authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
 printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
 warningmessages=$(sudo grep "Warning:" /var/log/rkhunter.log.1 | sort)
 if [ -z "$warningmessages" ]; then
-  printf "${GREEN}[+] No warning messages detected!${NC}\n"
+  printf "${BLUE}[+] rkhunter.log.1: ${GREEN}OK${NC}\n"
 else
-  printf "${RED}[!] Found warning messages with the following issues${NC}\n"
+  printf "${RED}[!] rkhunter.log.1: Found warning messages with the following issues${NC}\n"
   printf "$warningmessages\n"
 fi
 ufwblocked=$(sudo grep "[UFW BLOCK]" /var/log/ufw.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 if [ -z "$ufwblocked" ]; then
-  printf "${GREEN}[+] No block requests detected!${NC}\n"
+  printf "${BLUE}[+] ufw.log: ${GREEN}OK${NC}\n"
 else
-  printf "${RED}[!] Found blocked requests from the following IPs: ${NC}\n"
+  printf "${RED}[!] ufw.log: Found blocked requests from the following IPs: ${NC}\n"
   printf "$ufwblocked\n"
 fi
 failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 if [ -z "$failedlogin" ]; then
-  printf "${GREEN}[+] No failed-login attempts detected!${NC}\n"
+  printf "${BLUE}[+] auth.log: ${GREEN}OK${NC}\n"
 else
-  printf "${RED}[!] Found failed-login attempts from the following IPs: ${NC}\n"
+  printf "${RED}[!] auth.log: Found failed-login attempts from the following IPs: ${NC}\n"
   printf "$failedlogin"
 fi
 iparray=()
@@ -180,9 +180,9 @@ for i in "${autharray[@]}"; do
 done
 unapproved=$(echo ${unauthips[@]})
 if [ -z "$unapproved" ]; then
-  printf "${GREEN}[+] No unapproved IPs in auth.log${NC}\n"
+  printf "${BLUE}[+] Whitelist Check: ${GREEN}OK${NC}\n"
 else
-  printf "${RED}[!] Unapproved IPs found in auth.log: ${NC}\n"
+  printf "${RED}[!] Whitelist Check: Unapproved IPs found in auth.log: ${NC}\n"
   for i in "${unauthips[@]}"; do
     printf "$i\n"
   done
