@@ -1,4 +1,4 @@
-# SysIntegrity - File MD5sum Verification Tool
+# SysIntegrity - File and Log Integrity Check
 
 SysIntegrity allows users to add files on their system to a registry which would then be checked on startup. If a file has an unwarranted change, the hash would be changed which would trigger a red flag and warn the user of possible intrusion.
 
