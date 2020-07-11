@@ -146,6 +146,17 @@ else
   printf "${RED}[!] rkhunter.log.1: Found warning messages with the following issues${NC}\n"
   printf "$warningmessages\n"
 fi
+printf "${BLUE}[*] Checking if UFW enabled...${NC}\n"
+ufwenable=$(sudo ufw status | grep inactive)
+if [ -z "$ufwenable" ]; then
+  printf "${BLUE}[+] ufw status: ${GREEN}ENABLED${NC}\n"
+else
+  printf "${RED}[!] ufw status: DISABLED, ENABLING...${NC}\n"
+  sudo ufw enable
+fi
+ufwips=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
+echo $ufwips | fold -s -w15 | sudo tee -a ufw.ips
+ufwipcount=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }' | wc | awk '{ print $1 }')
 ufwblocked=$(sudo grep "[UFW BLOCK]" /var/log/ufw.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 if [ -z "$ufwblocked" ]; then
   printf "${BLUE}[+] ufw.log: ${GREEN}OK${NC}\n"
@@ -162,14 +173,37 @@ else
 fi
 iparray=()
 autharray=()
+ufwarray=()
 for i in $(seq 1 $ipcount); do
   ipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehost.list)
   iparray+=("$ipmatch")
+done
+for i in $(seq 1 $ufwipcount); do
+  ufwipmatch=$(awk '{if(NR=='$i') print $0}' ufw.ips)
+  ufwarray+=("$ufwipmatch")
 done
 for i in $(seq 1 $authcount); do
   authipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.authips.list)
   autharray+=("$authipmatch")
 done
+uncheckedips=()
+for i in "${ufwarray[@]}"; do
+  skip=   
+  for j in "${iparray[@]}"; do
+    [[ $i == $j ]] && { skip=1; break; }
+  done    
+  [[ -n $skip ]] || uncheckedips+=("$i")
+done
+unchecked=$(echo ${uncheckedips[@]})
+if [ -z "$unchecked" ]; then
+  printf "${BLUE}[+] Ufw Check: ${GREEN}OK${NC}\n"
+else
+  printf "${RED}[!] Ufw Check: Unapproved IPs not configured into ufw... ${NC}\n"
+  for i in "${iparray[@]}"; do
+    printf "$i\n"
+    sudo ufw allow from $i
+  done
+fi
 unauthips=()
 for i in "${autharray[@]}"; do
   skip=
@@ -187,4 +221,4 @@ else
     printf "$i\n"
   done
 fi
-#WORK_HERE
+sudo rm ufw.ips
