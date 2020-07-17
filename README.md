@@ -4,6 +4,8 @@ SysIntegrity allows users to add files on their system to a registry which would
 
 UPDATE: **Now supporting auth.log IP whitelisting, ufw.log parsing for [UFW BLOCK] messages, ufw IP passthrough, and rkhunter.log.1 parsing for warning messages!**
 
+COMING SOON: **Just uploaded new group and user whitelist check for main.sh, will clean up and add to cronjob in a few days**
+
 ## Getting Started
 
 To setup, add files to the whitelist, and create a cronjob, run ``` ./main.sh ``` 

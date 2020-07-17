@@ -41,6 +41,26 @@ else
   sudo chown $user /home/$user/.authips.list
 fi
 
+printf "${BLUE}[*] Checking if .whiteuser.list exists...${NC}\n"
+if [ -f "/home/$user/.whiteuser.list" ]; then
+  printf "${GREEN}[+] User Whitelist exists...${NC}\n"
+else
+  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+  touch /home/$user/.whiteuser.list
+  sudo chmod 700 /home/$user/.whiteuser.list
+  sudo chown $user /home/$user/.whiteuser.list
+fi
+
+printf "${BLUE}[*] Checking if .whitegroup.list exists...${NC}\n"
+if [ -f "/home/$user/.whitegroup.list" ]; then
+  printf "${GREEN}[+] User Whitelist exists...${NC}\n"
+else
+  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+  touch /home/$user/.whitegroup.list
+  sudo chmod 700 /home/$user/.whitegroup.list
+  sudo chown $user /home/$user/.whitegroup.list
+fi
+
 printf "${BLUE}[*] Checking if sysintegrity.log exists...${NC}\n"
 if [ -f "/home/$user/.sysintegrity.log" ]; then
   printf "${GREEN}[+] Log exists...${NC}\n"
@@ -88,6 +108,7 @@ if [ $cronadd == 'y' ] || [ $cronadd == 'Y' ]; then
 else
   printf "${BLUE}[*] Cronjob skipped...${NC}\n"
 fi
+
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new files to whitelist?[y/N]: " newfiles
 printf ${NC}
@@ -104,6 +125,7 @@ if [ $newfiles == 'y' ] || [ $newfiles == 'Y' ]; then
 else
   printf "${BLUE}[*] Checking for whitelist matches...${NC}\n"
 fi
+
 count=$(wc -l /home/$user/.whitehash.list | awk '{ print $1 }')
 printf "${BLUE}[*] Found $count entries...${NC}\n"
 for i in $(seq 1 $count)
@@ -154,6 +176,57 @@ else
   printf "${RED}[!] ufw status: DISABLED, ENABLING...${NC}\n"
   sudo ufw enable
 fi
+printf "${BLUE}\n"
+read -p "[*] Do you want to add any new users to whitelist?[y/N]: " newusers
+printf "${NC}"
+if [ $newusers == 'y' ] || [ $newusers == 'Y' ]; then
+  printf "${BLUE}[*] Ex. username${NC}\n"
+  printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
+  while [ 1 == 1 ]; do
+    read -p "[*]username: " newuser
+    if [ $newuser == 'done' ]; then
+      break
+    fi
+    echo "$newuser" >> /home/$user/.whiteuser.list
+  done
+else
+  printf "\n${BLUE}[*] Checking for unauthorized users in /etc/passwd...${NC}\n"
+fi
+
+usercount=$(wc -l /home/$user/.whiteuser.list | awk '{ print $1 }')
+printf "${BLUE}Found $usercount entries...${NC}\n"
+sudo grep -oE '^[^:]+' /etc/passwd | fold -s -w15 | sudo tee -a users.lst
+unauthusercount=$(wc -l users.lst | awk '{ print $1 }')
+authusers=$(sudo cat /home/$user/.whiteuser.list)
+userarray=()
+for i in $(seq 1 $unauthusercount); do
+  unauthusermatch=$(awk '{if(NR=='$i') print $0}' users.lst)
+  unauthuserarray+=("$unauthusermatch")
+done
+authuserarray=()
+for i in $(seq 1 $usercount); do
+  usermatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whiteuser.list)
+  authuserarray+=("$usermatch")
+done
+unauthusers=()
+for i in "${unauthuserarray[@]}"; do
+  skip=   
+  for j in "${authuserarray[@]}"; do
+    [[ $i == $j ]] && { skip=1; break; }
+  done    
+  [[ -n $skip ]] || unauthusers+=("$i")
+done
+unauthuser=$(echo ${unauthusers[@]})
+if [ -z "$unauthuser" ]; then
+  printf "${BLUE}[+] Users Whitelist Check: ${GREEN}OK${NC}\n"
+else
+  printf "${RED}[!] Users Whitelist Check: Unapproved users found in /etc/passwd: ${NC}\n"
+  for i in "${unauthusers[@]}"; do
+    printf "$i\n"
+  done
+fi
+
+printf "\n${BLUE}[*] Checking for events from UFW firewall\n"
 ufwips=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 echo $ufwips | fold -s -w15 | sudo tee -a ufw.ips
 ufwipcount=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }' | wc | awk '{ print $1 }')
@@ -171,6 +244,57 @@ else
   printf "${RED}[!] auth.log: Found failed-login attempts from the following IPs: ${NC}\n"
   printf "$failedlogin"
 fi
+printf "${BLUE}\n"
+read -p "[*] Do you want to add any new groups to whitelist?[y/N]: " newgroups
+printf "${NC}"
+if [ $newgroups == 'y' ] || [ $newgroups == 'Y' ]; then
+  printf "${BLUE}[*] Ex. groupname${NC}\n"
+  printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
+  while [ 1 == 1 ]; do
+    read -p "[*]groupname: " newgroup
+    if [ $newgroup == 'done' ]; then
+      break
+    fi
+    echo "$newgroup" >> /home/$user/.whitegroup.list
+  done
+else
+  printf "\n${BLUE}[*] Checking for unauthorized groups in /etc/group...\n"
+fi
+
+groupcount=$(wc -l /home/$user/.whitegroup.list | awk '{ print $1 }')
+printf "${BLUE}Found $groupcount entries...${NC}\n"
+sudo cat /etc/group | cut -d : -f 1 | fold -s -w15 | sudo tee -a groups.lst
+unauthgroupcount=$(wc -l groups.lst | awk '{ print $1 }')
+authgroups=$(sudo cat /home/$user/.whitegroup.list)
+userarray=()
+for i in $(seq 1 $unauthgroupcount); do
+  unauthgroupmatch=$(awk '{if(NR=='$i') print $0}' groups.lst)
+  unauthgrouparray+=("$unauthgroupmatch")
+done
+authgrouparray=()
+for i in $(seq 1 $groupcount); do
+  groupmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitegroup.list)
+  authgrouparray+=("$groupmatch")
+done
+unauthgroups=()
+for i in "${unauthgrouparray[@]}"; do
+  skip=   
+  for j in "${authgrouparray[@]}"; do
+    [[ $i == $j ]] && { skip=1; break; }
+  done    
+  [[ -n $skip ]] || unauthgroups+=("$i")
+done
+unauthgroup=$(echo ${unauthgroups[@]})
+if [ -z "$unauthuser" ]; then
+  printf "${BLUE}[+] Groups Whitelist Check: ${GREEN}OK${NC}\n"
+else
+  printf "${RED}[!] Groups Whitelist Check: Unapproved groups found in /etc/group: ${NC}\n"
+  for i in "${unauthgroups[@]}"; do
+    printf "$i\n"
+  done
+fi
+
+
 iparray=()
 autharray=()
 ufwarray=()
@@ -214,11 +338,13 @@ for i in "${autharray[@]}"; do
 done
 unapproved=$(echo ${unauthips[@]})
 if [ -z "$unapproved" ]; then
-  printf "${BLUE}[+] Whitelist Check: ${GREEN}OK${NC}\n"
+  printf "${BLUE}[+] Auth IPs Whitelist Check: ${GREEN}OK${NC}\n"
 else
-  printf "${RED}[!] Whitelist Check: Unapproved IPs found in auth.log: ${NC}\n"
+  printf "${RED}[!] Auth IPs Whitelist Check: Unapproved IPs found in auth.log: ${NC}\n"
   for i in "${unauthips[@]}"; do
     printf "$i\n"
   done
 fi
 sudo rm ufw.ips
+sudo rm groups.lst
+sudo rm users.lst
