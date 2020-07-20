@@ -2,9 +2,8 @@
 
 SysIntegrity allows users to add files on their system to a registry which would then be checked on startup. If a file has an unwarranted change, the hash would be changed which would trigger a red flag and warn the user of possible intrusion.
 
-UPDATE: **Now supporting auth.log IP whitelisting, ufw.log parsing for [UFW BLOCK] messages, ufw IP passthrough, and rkhunter.log.1 parsing for warning messages!**
-
-COMING SOON: **Just uploaded new group and user whitelist check for main.sh, will clean up and add to cronjob in a few days**
+UPDATE: **Added user and group whitelisting!**
+COMING SOON: **Replacing whitelists with single SQL DB**
 
 ## Getting Started
 

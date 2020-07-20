@@ -97,6 +97,7 @@ else
   printf "${GREEN}[+] gtkhash installed...${NC}\n"
 fi
 
+
 printf "${BLUE}\n"
 read -p "[*] Do you want to make a cronjob for verifying files on startup?[y/N]: " cronadd
 printf ${NC}
@@ -108,6 +109,7 @@ if [ $cronadd == 'y' ] || [ $cronadd == 'Y' ]; then
 else
   printf "${BLUE}[*] Cronjob skipped...${NC}\n"
 fi
+
 
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new files to whitelist?[y/N]: " newfiles
@@ -123,23 +125,10 @@ if [ $newfiles == 'y' ] || [ $newfiles == 'Y' ]; then
     sudo md5sum $newfilepath >> /home/$user/.whitehash.list
   done
 else
-  printf "${BLUE}[*] Checking for whitelist matches...${NC}\n"
+  printf "\n"
 fi
 
-count=$(wc -l /home/$user/.whitehash.list | awk '{ print $1 }')
-printf "${BLUE}[*] Found $count entries...${NC}\n"
-for i in $(seq 1 $count)
-do
-  match=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehash.list)
-  hash=$(echo $match | awk '{ print $1 }')
-  filepath=$(echo $match | awk '{ print $2 }')
-  md5hash=$(sudo md5sum $filepath | awk '{ print $1 }')
-  if [ $md5hash == $hash ]; then
-    printf "${BLUE}[+] $filepath: ${GREEN}OK${NC}\n"
-  else
-    printf "${RED}[!] $filepath: WARNING${NC}\n"
-  fi
-done
+
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new IPs to whitelist?[y/N]: " newips
 printf "${NC}"
@@ -154,28 +143,10 @@ if [ $newips == 'y' ] || [ $newips == 'Y' ]; then
     echo "$newip" >> /home/$user/.whitehost.list
   done
 else
-  printf "\n${BLUE}[*] Checking for nonapproved IPs in auth.log\n"
+  printf "\n"
 fi
-printf "${BLUE}[*] Refreshing .authips.list...${NC}\n"
-sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
-ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
-authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
-printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
-warningmessages=$(sudo grep "Warning:" /var/log/rkhunter.log.1 | sort)
-if [ -z "$warningmessages" ]; then
-  printf "${BLUE}[+] rkhunter.log.1: ${GREEN}OK${NC}\n"
-else
-  printf "${RED}[!] rkhunter.log.1: Found warning messages with the following issues${NC}\n"
-  printf "$warningmessages\n"
-fi
-printf "${BLUE}[*] Checking if UFW enabled...${NC}\n"
-ufwenable=$(sudo ufw status | grep inactive)
-if [ -z "$ufwenable" ]; then
-  printf "${BLUE}[+] ufw status: ${GREEN}ENABLED${NC}\n"
-else
-  printf "${RED}[!] ufw status: DISABLED, ENABLING...${NC}\n"
-  sudo ufw enable
-fi
+
+
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new users to whitelist?[y/N]: " newusers
 printf "${NC}"
@@ -190,9 +161,61 @@ if [ $newusers == 'y' ] || [ $newusers == 'Y' ]; then
     echo "$newuser" >> /home/$user/.whiteuser.list
   done
 else
-  printf "\n${BLUE}[*] Checking for unauthorized users in /etc/passwd...${NC}\n"
+  printf "\n"
 fi
 
+
+printf "${BLUE}\n"
+read -p "[*] Do you want to add any new groups to whitelist?[y/N]: " newgroups
+printf "${NC}"
+if [ $newgroups == 'y' ] || [ $newgroups == 'Y' ]; then
+  printf "${BLUE}[*] Ex. groupname${NC}\n"
+  printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
+  while [ 1 == 1 ]; do
+    read -p "[*]groupname: " newgroup
+    if [ $newgroup == 'done' ]; then
+      break
+    fi
+    echo "$newgroup" >> /home/$user/.whitegroup.list
+  done
+else
+  printf "\n"
+fi
+
+
+printf "${BLUE}[*] Checking for file hash whitelist matches...${NC}\n"
+count=$(wc -l /home/$user/.whitehash.list | awk '{ print $1 }')
+printf "${BLUE}[*] Found $count entries...${NC}\n"
+for i in $(seq 1 $count)
+do
+  match=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehash.list)
+  hash=$(echo $match | awk '{ print $1 }')
+  filepath=$(echo $match | awk '{ print $2 }')
+  md5hash=$(sudo md5sum $filepath | awk '{ print $1 }')
+  if [ $md5hash == $hash ]; then
+    printf "${BLUE}[+] $filepath: ${GREEN}OK${NC}\n"
+  else
+    printf "${RED}[!] $filepath: WARNING${NC}\n"
+  fi
+done
+
+
+printf "${BLUE}[*] Refreshing .authips.list...${NC}\n"
+sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
+ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
+authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
+
+
+warningmessages=$(sudo grep "Warning:" /var/log/rkhunter.log.1 | sort)
+if [ -z "$warningmessages" ]; then
+  printf "${BLUE}[+] rkhunter.log.1: ${GREEN}OK${NC}\n"
+else
+  printf "${RED}[!] rkhunter.log.1: Found warning messages with the following issues${NC}\n"
+  printf "$warningmessages\n"
+fi
+
+
+printf "\n${BLUE}[*] Checking for unauthorized users in /etc/passwd...${NC}\n"
 usercount=$(wc -l /home/$user/.whiteuser.list | awk '{ print $1 }')
 printf "${BLUE}Found $usercount entries...${NC}\n"
 sudo grep -oE '^[^:]+' /etc/passwd | fold -s -w15 | sudo tee -a users.lst
@@ -226,7 +249,18 @@ else
   done
 fi
 
-printf "\n${BLUE}[*] Checking for events from UFW firewall\n"
+
+printf "${BLUE}[*] Checking if UFW enabled...${NC}\n"
+ufwenable=$(sudo ufw status | grep inactive)
+if [ -z "$ufwenable" ]; then
+  printf "${BLUE}[+] ufw status: ${GREEN}ENABLED${NC}\n"
+else
+  printf "${RED}[!] ufw status: DISABLED, ENABLING...${NC}\n"
+  sudo ufw enable
+fi
+
+
+printf "\n${BLUE}[*] Checking for events from UFW firewall...${NC}\n"
 ufwips=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 echo $ufwips | fold -s -w15 | sudo tee -a ufw.ips
 ufwipcount=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }' | wc | awk '{ print $1 }')
@@ -237,30 +271,46 @@ else
   printf "${RED}[!] ufw.log: Found blocked requests from the following IPs: ${NC}\n"
   printf "$ufwblocked\n"
 fi
-failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
-if [ -z "$failedlogin" ]; then
-  printf "${BLUE}[+] auth.log: ${GREEN}OK${NC}\n"
+
+
+iparray=()
+autharray=()
+ufwarray=()
+for i in $(seq 1 $ipcount); do
+  ipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehost.list)
+  iparray+=("$ipmatch")
+done
+for i in $(seq 1 $ufwipcount); do
+  ufwipmatch=$(awk '{if(NR=='$i') print $0}' ufw.ips)
+  ufwarray+=("$ufwipmatch")
+done
+for i in $(seq 1 $authcount); do
+  authipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.authips.list)
+  autharray+=("$authipmatch")
+done
+uncheckedips=()
+for i in "${iparray[@]}"; do
+  skip=   
+  for j in "${ufwarray[@]}"; do
+    [[ $i == $j ]] && { skip=1; break; }
+  done    
+  [[ -n $skip ]] || uncheckedips+=("$i")
+done
+unchecked=$(echo ${uncheckedips[@]})
+
+
+if [ -z "$unchecked" ]; then
+  printf "${BLUE}[+] Ufw Check: ${GREEN}OK${NC}\n"
 else
-  printf "${RED}[!] auth.log: Found failed-login attempts from the following IPs: ${NC}\n"
-  printf "$failedlogin"
-fi
-printf "${BLUE}\n"
-read -p "[*] Do you want to add any new groups to whitelist?[y/N]: " newgroups
-printf "${NC}"
-if [ $newgroups == 'y' ] || [ $newgroups == 'Y' ]; then
-  printf "${BLUE}[*] Ex. groupname${NC}\n"
-  printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
-  while [ 1 == 1 ]; do
-    read -p "[*]groupname: " newgroup
-    if [ $newgroup == 'done' ]; then
-      break
-    fi
-    echo "$newgroup" >> /home/$user/.whitegroup.list
+  printf "${RED}[!] Ufw Check: Unapproved IPs not configured into ufw... ${NC}\n"
+  for i in "${iparray[@]}"; do
+    printf "$i\n"
+    sudo ufw allow from $i
   done
-else
-  printf "\n${BLUE}[*] Checking for unauthorized groups in /etc/group...\n"
 fi
 
+
+printf "\n${BLUE}[*] Checking for unauthorized groups in /etc/group...\n"
 groupcount=$(wc -l /home/$user/.whitegroup.list | awk '{ print $1 }')
 printf "${BLUE}Found $groupcount entries...${NC}\n"
 sudo cat /etc/group | cut -d : -f 1 | fold -s -w15 | sudo tee -a groups.lst
@@ -295,39 +345,6 @@ else
 fi
 
 
-iparray=()
-autharray=()
-ufwarray=()
-for i in $(seq 1 $ipcount); do
-  ipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehost.list)
-  iparray+=("$ipmatch")
-done
-for i in $(seq 1 $ufwipcount); do
-  ufwipmatch=$(awk '{if(NR=='$i') print $0}' ufw.ips)
-  ufwarray+=("$ufwipmatch")
-done
-for i in $(seq 1 $authcount); do
-  authipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.authips.list)
-  autharray+=("$authipmatch")
-done
-uncheckedips=()
-for i in "${ufwarray[@]}"; do
-  skip=   
-  for j in "${iparray[@]}"; do
-    [[ $i == $j ]] && { skip=1; break; }
-  done    
-  [[ -n $skip ]] || uncheckedips+=("$i")
-done
-unchecked=$(echo ${uncheckedips[@]})
-if [ -z "$unchecked" ]; then
-  printf "${BLUE}[+] Ufw Check: ${GREEN}OK${NC}\n"
-else
-  printf "${RED}[!] Ufw Check: Unapproved IPs not configured into ufw... ${NC}\n"
-  for i in "${iparray[@]}"; do
-    printf "$i\n"
-    sudo ufw allow from $i
-  done
-fi
 unauthips=()
 for i in "${autharray[@]}"; do
   skip=
@@ -337,6 +354,21 @@ for i in "${autharray[@]}"; do
   [[ -n $skip ]] || unauthips+=("$i")
 done
 unapproved=$(echo ${unauthips[@]})
+
+
+printf "\n${BLUE}[*] Checking auth.log\n"
+printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
+
+
+failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
+if [ -z "$failedlogin" ]; then
+  printf "${BLUE}[+] auth.log: ${GREEN}OK${NC}\n"
+else
+  printf "${RED}[!] auth.log: Found failed-login attempts from the following IPs: ${NC}\n"
+  printf "$failedlogin\n"
+fi
+
+
 if [ -z "$unapproved" ]; then
   printf "${BLUE}[+] Auth IPs Whitelist Check: ${GREEN}OK${NC}\n"
 else
@@ -345,6 +377,8 @@ else
     printf "$i\n"
   done
 fi
+
+
 sudo rm ufw.ips
 sudo rm groups.lst
 sudo rm users.lst
