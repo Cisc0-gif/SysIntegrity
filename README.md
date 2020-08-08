@@ -2,8 +2,7 @@
 
 SysIntegrity allows users to add files on their system to a registry which would then be checked on startup. If a file has an unwarranted change, the hash would be changed which would trigger a red flag and warn the user of possible intrusion.
 
-UPDATE: **Added user and group whitelisting!**
-COMING SOON: **Replacing whitelists with single SQL DB**
+UPDATE: **Converted seperate whitelist files with SQL Database!**
 
 ## Getting Started
 

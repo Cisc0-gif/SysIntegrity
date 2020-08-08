@@ -11,55 +11,55 @@ wait_func() {
 read -p "PRESS ENTER TO CONTINUE" wait
 }
 
-printf "${BLUE}[*] Checking if whitehash.list exists...${NC}\n"
-if [ -f "/home/$user/.whitehash.list" ]; then
-  printf "${GREEN}[+] Hash whitelist exists...${NC}\n"
-else
-  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
-  touch /home/$user/.whitehash.list
-  sudo chmod 700 /home/$user/.whitehash.list
-  sudo chown $user /home/$user/.whitehash.list
-fi
+#printf "${BLUE}[*] Checking if whitehash.list exists...${NC}\n"
+#if [ -f "/home/$user/.whitehash.list" ]; then
+#  printf "${GREEN}[+] Hash whitelist exists...${NC}\n"
+#else
+#  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+#  touch /home/$user/.whitehash.list
+#  sudo chmod 700 /home/$user/.whitehash.list
+#  sudo chown $user /home/$user/.whitehash.list
+#fi
 
-printf "${BLUE}[*] Checking if whitehost.list exists...${NC}\n"
-if [ -f "/home/$user/.whitehost.list" ]; then
-  printf "${GREEN}[+] Host whitelist exists...${NC}\n"
-else
-  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
-  touch /home/$user/.whitehost.list
-  sudo chmod 700 /home/$user/.whitehost.list
-  sudo chown $user /home/$user/.whitehost.list
-fi
+#printf "${BLUE}[*] Checking if whitehost.list exists...${NC}\n"
+#if [ -f "/home/$user/.whitehost.list" ]; then
+#  printf "${GREEN}[+] Host whitelist exists...${NC}\n"
+#else
+#  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+#  touch /home/$user/.whitehost.list
+#  sudo chmod 700 /home/$user/.whitehost.list
+#  sudo chown $user /home/$user/.whitehost.list
+#fi
 
-printf "${BLUE}[*] Checking if .authips.list exists...${NC}\n"
-if [ -f "/home/$user/.authips.list" ]; then
-  printf "${GREEN}[+] Auth Log list exists...${NC}\n"
-else
-  printf "${RED}[!] Unable to locate auth log list, generating...${NC}\n"
-  sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
-  sudo chmod 700 /home/$user/.authips.list
-  sudo chown $user /home/$user/.authips.list
-fi
+#printf "${BLUE}[*] Checking if .authips.list exists...${NC}\n"
+#if [ -f "/home/$user/.authips.list" ]; then
+#  printf "${GREEN}[+] Auth Log list exists...${NC}\n"
+#else
+#  printf "${RED}[!] Unable to locate auth log list, generating...${NC}\n"
+#  sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
+#  sudo chmod 700 /home/$user/.authips.list
+#  sudo chown $user /home/$user/.authips.list
+#fi
 
-printf "${BLUE}[*] Checking if .whiteuser.list exists...${NC}\n"
-if [ -f "/home/$user/.whiteuser.list" ]; then
-  printf "${GREEN}[+] User Whitelist exists...${NC}\n"
-else
-  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
-  touch /home/$user/.whiteuser.list
-  sudo chmod 700 /home/$user/.whiteuser.list
-  sudo chown $user /home/$user/.whiteuser.list
-fi
+#printf "${BLUE}[*] Checking if .whiteuser.list exists...${NC}\n"
+#if [ -f "/home/$user/.whiteuser.list" ]; then
+#  printf "${GREEN}[+] User Whitelist exists...${NC}\n"
+#else
+#  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+#  touch /home/$user/.whiteuser.list
+#  sudo chmod 700 /home/$user/.whiteuser.list
+#  sudo chown $user /home/$user/.whiteuser.list
+#fi
 
-printf "${BLUE}[*] Checking if .whitegroup.list exists...${NC}\n"
-if [ -f "/home/$user/.whitegroup.list" ]; then
-  printf "${GREEN}[+] User Whitelist exists...${NC}\n"
-else
-  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
-  touch /home/$user/.whitegroup.list
-  sudo chmod 700 /home/$user/.whitegroup.list
-  sudo chown $user /home/$user/.whitegroup.list
-fi
+#printf "${BLUE}[*] Checking if .whitegroup.list exists...${NC}\n"
+#if [ -f "/home/$user/.whitegroup.list" ]; then
+#  printf "${GREEN}[+] User Whitelist exists...${NC}\n"
+#else
+#  printf "${RED}[!] Unable to locate whitelist, generating...${NC}\n"
+#  touch /home/$user/.whitegroup.list
+#  sudo chmod 700 /home/$user/.whitegroup.list
+#  sudo chown $user /home/$user/.whitegroup.list
+#fi
 
 printf "${BLUE}[*] Checking if sysintegrity.log exists...${NC}\n"
 if [ -f "/home/$user/.sysintegrity.log" ]; then
@@ -97,6 +97,30 @@ else
   printf "${GREEN}[+] gtkhash installed...${NC}\n"
 fi
 
+printf "${BLUE}[*] Checking if sqlite3 is installed...${NC}\n"
+sqlcheck=$(sudo dpkg -s sqlite3 | grep not)
+if [ -n "$sqlcheck" ]; then
+  printf "${RED}[!] sqlite3 not installed, installing now...${NC}\n"
+  sudo apt-get install sqlite3
+  printf "${BLUE}[*] Creating database 'whitelist.db'...${NC}\n"
+  sudo sqlite3 whitelist.db "CREATE TABLE users (name TEXT);"
+  sudo sqlite3 whitelist.db "CREATE TABLE groups (gname TEXT);"
+  sudo sqlite3 whitelist.db "CREATE TABLE hashsum (filename TEXT,hash TEXT);"
+  sudo sqlite3 whitelist.db "CREATE TABLE ips (ip TEXT);"
+else
+  printf "${GREEN}[+] sqlite3 installed...${NC}\n"
+  printf "${BLUE}[*] Checking if database 'whitelist.db' exists...${NC}\n"
+  if [ -f "whitelist.db" ]; then
+    printf "${GREEN}[+] Whitelist Database Exists...${NC}\n"
+  else
+    printf "${RED}[!] Unable to locate database, generating...${NC}\n"
+    printf "${BLUE}[*] Creating database 'whitelist.db'...${NC}\n"
+    sudo sqlite3 whitelist.db "CREATE TABLE users (name TEXT);"
+    sudo sqlite3 whitelist.db "CREATE TABLE groups (gname TEXT);"
+    sudo sqlite3 whitelist.db "CREATE TABLE hashsum (filename TEXT,hash TEXT);"
+    sudo sqlite3 whitelist.db "CREATE TABLE ips (ip TEXT);"
+  fi
+fi
 
 printf "${BLUE}\n"
 read -p "[*] Do you want to make a cronjob for verifying files on startup?[y/N]: " cronadd
@@ -110,7 +134,6 @@ else
   printf "${BLUE}[*] Cronjob skipped...${NC}\n"
 fi
 
-
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new files to whitelist?[y/N]: " newfiles
 printf ${NC}
@@ -122,12 +145,15 @@ if [ $newfiles == 'y' ] || [ $newfiles == 'Y' ]; then
     if [ $newfilepath == 'done' ]; then
       break
     fi
-    sudo md5sum $newfilepath >> /home/$user/.whitehash.list
+    main=$(sudo md5sum $newfilepath)
+    hash=$(echo $main | awk '{ print $1 }')
+    filepath=$(echo $main | awk '{ print $2 }')
+    sudo sqlite3 whitelist.db "INSERT INTO hashsum (filename,hash) VALUES ('$filepath','$hash');"
+    #sudo md5sum $newfilepath >> /home/$user/.whitehash.list -- OLD METHOD
   done
 else
   printf "\n"
 fi
-
 
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new IPs to whitelist?[y/N]: " newips
@@ -136,16 +162,16 @@ if [ $newips == 'y' ] || [ $newips == 'Y' ]; then
   printf "${BLUE}[*] Ex. 192.168.1.0${NC}\n"
   printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
   while [ 1 == 1 ]; do
-    read -p "[*]IP: " newip
+    read -p "[*] IP: " newip
     if [ $newip == 'done' ]; then
       break
     fi
-    echo "$newip" >> /home/$user/.whitehost.list
+    sudo sqlite3 whitelist.db "INSERT INTO ips (ip) VALUES ('$newip');"
+    #echo "$newip" >> /home/$user/.whitehost.list -- OLD METHOD
   done
 else
   printf "\n"
 fi
-
 
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new users to whitelist?[y/N]: " newusers
@@ -154,16 +180,16 @@ if [ $newusers == 'y' ] || [ $newusers == 'Y' ]; then
   printf "${BLUE}[*] Ex. username${NC}\n"
   printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
   while [ 1 == 1 ]; do
-    read -p "[*]username: " newuser
+    read -p "[*] username: " newuser
     if [ $newuser == 'done' ]; then
       break
     fi
-    echo "$newuser" >> /home/$user/.whiteuser.list
+    sudo sqlite3 whitelist.db "INSERT INTO users (name) VALUES ('$newuser');"
+    #echo "$newuser" >> /home/$user/.whiteuser.list -- OLD METHOD
   done
 else
   printf "\n"
 fi
-
 
 printf "${BLUE}\n"
 read -p "[*] Do you want to add any new groups to whitelist?[y/N]: " newgroups
@@ -172,25 +198,25 @@ if [ $newgroups == 'y' ] || [ $newgroups == 'Y' ]; then
   printf "${BLUE}[*] Ex. groupname${NC}\n"
   printf "${BLUE}[*] Enter 'done' when finished${NC}\n"
   while [ 1 == 1 ]; do
-    read -p "[*]groupname: " newgroup
+    read -p "[*] groupname: " newgroup
     if [ $newgroup == 'done' ]; then
       break
     fi
-    echo "$newgroup" >> /home/$user/.whitegroup.list
+    sudo sqlite3 whitelist.db "INSERT INTO groups (gname) VALUES ('$newgroup');"
+    #echo "$newgroup" >> /home/$user/.whitegroup.list -- OLD METHOD
   done
 else
   printf "\n"
 fi
 
-
 printf "${BLUE}[*] Checking for file hash whitelist matches...${NC}\n"
-count=$(wc -l /home/$user/.whitehash.list | awk '{ print $1 }')
+count=$(sudo sqlite3 whitelist.db "SELECT * FROM hashsum;" | wc -l)
 printf "${BLUE}[*] Found $count entries...${NC}\n"
 for i in $(seq 1 $count)
 do
-  match=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehash.list)
-  hash=$(echo $match | awk '{ print $1 }')
-  filepath=$(echo $match | awk '{ print $2 }')
+  match=$(sudo sqlite3 whitelist.db "SELECT * FROM hashsum;" | awk '{if(NR=='$i') print $1}')
+  hash=$(echo $match | awk -F "|" '{ print $2 }')
+  filepath=$(echo $match | awk -F "|" '{ print $1 }')
   md5hash=$(sudo md5sum $filepath | awk '{ print $1 }')
   if [ $md5hash == $hash ]; then
     printf "${BLUE}[+] $filepath: ${GREEN}OK${NC}\n"
@@ -199,12 +225,10 @@ do
   fi
 done
 
-
-printf "${BLUE}[*] Refreshing .authips.list...${NC}\n"
-sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq > /home/$user/.authips.list
-ipcount=$(wc -l /home/$user/.whitehost.list | awk '{ print $1 }')
-authcount=$(wc -l /home/$user/.authips.list | awk '{ print $1 }')
-
+printf "${BLUE}[*] Refreshing authips.lst...${NC}\n"
+sudo cat /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq | sudo tee -a authips.lst
+ipcount=$(sudo sqlite3 whitelist.db "SELECT * FROM ips;" | wc -l)
+authcount=$(wc -l authips.lst | awk '{ print $1 }')
 
 warningmessages=$(sudo grep "Warning:" /var/log/rkhunter.log.1 | sort)
 if [ -z "$warningmessages" ]; then
@@ -214,13 +238,12 @@ else
   printf "$warningmessages\n"
 fi
 
-
 printf "\n${BLUE}[*] Checking for unauthorized users in /etc/passwd...${NC}\n"
-usercount=$(wc -l /home/$user/.whiteuser.list | awk '{ print $1 }')
+usercount=$(sudo sqlite3 whitelist.db "SELECT * FROM users;" | wc -l)
 printf "${BLUE}Found $usercount entries...${NC}\n"
 sudo grep -oE '^[^:]+' /etc/passwd | fold -s -w15 | sudo tee -a users.lst
 unauthusercount=$(wc -l users.lst | awk '{ print $1 }')
-authusers=$(sudo cat /home/$user/.whiteuser.list)
+authusers=$(sudo sqlite3 whitelist.db "SELECT * FROM users;")
 userarray=()
 for i in $(seq 1 $unauthusercount); do
   unauthusermatch=$(awk '{if(NR=='$i') print $0}' users.lst)
@@ -228,7 +251,7 @@ for i in $(seq 1 $unauthusercount); do
 done
 authuserarray=()
 for i in $(seq 1 $usercount); do
-  usermatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whiteuser.list)
+  usermatch=$(sudo sqlite3 whitelist.db "SELECT * FROM users;" | awk '{if(NR=='$i') print $0}')
   authuserarray+=("$usermatch")
 done
 unauthusers=()
@@ -249,7 +272,6 @@ else
   done
 fi
 
-
 printf "${BLUE}[*] Checking if UFW enabled...${NC}\n"
 ufwenable=$(sudo ufw status | grep inactive)
 if [ -z "$ufwenable" ]; then
@@ -258,7 +280,6 @@ else
   printf "${RED}[!] ufw status: DISABLED, ENABLING...${NC}\n"
   sudo ufw enable
 fi
-
 
 printf "\n${BLUE}[*] Checking for events from UFW firewall...${NC}\n"
 ufwips=$(sudo ufw status | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
@@ -272,12 +293,11 @@ else
   printf "$ufwblocked\n"
 fi
 
-
 iparray=()
 autharray=()
 ufwarray=()
 for i in $(seq 1 $ipcount); do
-  ipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitehost.list)
+  ipmatch=$(sudo sqlite3 whitelist.db "SELECT * FROM ips;" | awk '{if(NR=='$i') print $0}')
   iparray+=("$ipmatch")
 done
 for i in $(seq 1 $ufwipcount); do
@@ -285,7 +305,7 @@ for i in $(seq 1 $ufwipcount); do
   ufwarray+=("$ufwipmatch")
 done
 for i in $(seq 1 $authcount); do
-  authipmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.authips.list)
+  authipmatch=$(awk '{if(NR=='$i') print $0}' authips.lst)
   autharray+=("$authipmatch")
 done
 uncheckedips=()
@@ -298,7 +318,6 @@ for i in "${iparray[@]}"; do
 done
 unchecked=$(echo ${uncheckedips[@]})
 
-
 if [ -z "$unchecked" ]; then
   printf "${BLUE}[+] Ufw Check: ${GREEN}OK${NC}\n"
 else
@@ -309,13 +328,12 @@ else
   done
 fi
 
-
 printf "\n${BLUE}[*] Checking for unauthorized groups in /etc/group...\n"
-groupcount=$(wc -l /home/$user/.whitegroup.list | awk '{ print $1 }')
+groupcount=$(sudo sqlite3 whitelist.db "SELECT * FROM groups;" | wc -l)
 printf "${BLUE}Found $groupcount entries...${NC}\n"
 sudo cat /etc/group | cut -d : -f 1 | fold -s -w15 | sudo tee -a groups.lst
 unauthgroupcount=$(wc -l groups.lst | awk '{ print $1 }')
-authgroups=$(sudo cat /home/$user/.whitegroup.list)
+authgroups=$(sudo sqlite3 whitelist.db "SELECT * FROM groups;")
 userarray=()
 for i in $(seq 1 $unauthgroupcount); do
   unauthgroupmatch=$(awk '{if(NR=='$i') print $0}' groups.lst)
@@ -323,7 +341,7 @@ for i in $(seq 1 $unauthgroupcount); do
 done
 authgrouparray=()
 for i in $(seq 1 $groupcount); do
-  groupmatch=$(awk '{if(NR=='$i') print $0}' /home/$user/.whitegroup.list)
+  groupmatch=$(sudo sqlite3 whitelist.db "SELECT * FROM groups;" | awk '{if(NR=='$i') print $0}')
   authgrouparray+=("$groupmatch")
 done
 unauthgroups=()
@@ -344,7 +362,6 @@ else
   done
 fi
 
-
 unauthips=()
 for i in "${autharray[@]}"; do
   skip=
@@ -355,10 +372,8 @@ for i in "${autharray[@]}"; do
 done
 unapproved=$(echo ${unauthips[@]})
 
-
 printf "\n${BLUE}[*] Checking auth.log\n"
 printf "${BLUE}[*] Found $ipcount entries...${NC}\n"
-
 
 failedlogin=$(sudo grep "Failed password for" /var/log/auth.log | grep -Po "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | sort | uniq -c | awk '{ print $2 }')
 if [ -z "$failedlogin" ]; then
@@ -367,7 +382,6 @@ else
   printf "${RED}[!] auth.log: Found failed-login attempts from the following IPs: ${NC}\n"
   printf "$failedlogin\n"
 fi
-
 
 if [ -z "$unapproved" ]; then
   printf "${BLUE}[+] Auth IPs Whitelist Check: ${GREEN}OK${NC}\n"
@@ -378,7 +392,7 @@ else
   done
 fi
 
-
 sudo rm ufw.ips
 sudo rm groups.lst
 sudo rm users.lst
+sudo rm authips.lst
