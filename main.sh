@@ -128,7 +128,7 @@ printf ${NC}
 if [ $cronadd == 'y' ] || [ $cronadd == 'Y' ]; then
   printf "${BLUE}[*] Adding cronjob...${NC}\n"
   echo $user | sudo tee -a /etc/cron.allow
-  crontab -l | { cat; echo "@reboot bash -x $currentdir/cron.sh >> /home/$user/.sysintegrity.log"; } | crontab -
+  crontab -l | { cat; echo "@reboot sudo bash -x $currentdir/cron.sh >> /home/$user/.sysintegrity.log"; } | crontab -
   printf "${GREEN}[+] Cronjob added, check /home/$user/.sysintegrity.log for output...${NC}\n"
 else
   printf "${BLUE}[*] Cronjob skipped...${NC}\n"
