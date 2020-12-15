@@ -71,8 +71,8 @@ else
 fi
 
 printf "${BLUE}[*] Checking if ufw is installed...${NC}\n"
-ufwcheck=$(sudo dpkg -s ufw | grep not)
-if [ -n "$ufwcheck" ]; then
+ufwcheck=$(dpkg-query -W -f='${Status}' ufw 2>/dev/null | grep -c "ok installed")
+if [ "$ufwcheck" == "0" ]; then
   printf "${RED}[!] ufw not installed, installing now...${NC}\n"
   sudo apt-get install ufw
 else
@@ -80,8 +80,8 @@ else
 fi
 
 printf "${BLUE}[*] Checking if rkhunter is installed...${NC}\n"
-rkhuntercheck=$(sudo dpkg -s rkhunter | grep dpkg-query)
-if [ -n "$rkhuntercheck" ]; then
+rkhuntercheck=$(dpkg-query -W -f='${Status}' rkhunter 2>/dev/null | grep -c "ok installed")
+if [ "$rkhuntercheck" == "0" ]; then
   printf "${RED}[!] rkhunter not installed, installing now...${NC}\n"
   sudo apt-get install rkhunter
 else
@@ -89,8 +89,8 @@ else
 fi
 
 printf "${BLUE}[*] Checking if gtkhash is installed...${NC}\n"
-gtkcheck=$(dpkg -s gtkhash | grep not)
-if [ -n "$gtkcheck" ]; then
+gtkcheck=$(dpkg-query -W -f='${Status}' gtkhash 2>/dev/null | grep -c "ok installed")
+if [ "$gtkcheck" == "0" ]; then
   printf "${RED}[!] gtkhash not installed, installing now...${NC}\n"
   sudo apt-get install gtkhash
 else
@@ -98,8 +98,8 @@ else
 fi
 
 printf "${BLUE}[*] Checking if sqlite3 is installed...${NC}\n"
-sqlcheck=$(sudo dpkg -s sqlite3 | grep not)
-if [ -n "$sqlcheck" ]; then
+sqlcheck=$(dpkg-query -W -f='${Status}' sqlite3 2>/dev/null | grep -c "ok installed")
+if [ "$sqlcheck" == "0" ]; then
   printf "${RED}[!] sqlite3 not installed, installing now...${NC}\n"
   sudo apt-get install sqlite3
   printf "${BLUE}[*] Creating database 'whitelist.db'...${NC}\n"
